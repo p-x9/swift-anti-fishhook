@@ -1,0 +1,23 @@
+{
+  "pins" : [
+    {
+      "identity" : "machokit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/p-x9/MachOKit.git",
+      "state" : {
+        "revision" : "0bde958e4d1d41e0e20b246c36a31da1a446b85c",
+        "version" : "0.13.0"
+      }
+    },
+    {
+      "identity" : "swift-fishhook",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/p-x9/swift-fishhook",
+      "state" : {
+        "revision" : "302bcbc70fc43d7672e14cb63ef0c0469a3923e1",
+        "version" : "0.4.0"
+      }
+    }
+  ],
+  "version" : 2
+}

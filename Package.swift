@@ -10,13 +10,27 @@ let package = Package(
             targets: ["AntiFishHook"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/p-x9/swift-fishhook", from: "0.4.0"),
+        .package(url: "https://github.com/p-x9/MachOKit", from: "0.13.0")
+    ],
     targets: [
         .target(
-            name: "AntiFishHook"
+            name: "AntiFishHook",
+            dependencies: [
+                .product(name: "FishHook", package: "swift-fishhook"),
+                .product(name: "MachOKit", package: "MachOKit")
+            ]
         ),
         .testTarget(
             name: "AntiFishHookTests",
-            dependencies: ["AntiFishHook"]
+            dependencies: ["AntiFishHook"],
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker",
+                    "-interposable"
+                ])
+            ]
         ),
     ]
 )
