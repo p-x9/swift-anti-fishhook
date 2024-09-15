@@ -3,6 +3,7 @@ import MachOKit
 import FishHook
 
 public enum AntiFishHook {
+    @inlinable
     @inline(__always)
     static public func denyFishHook(_ symbol: String) {
         var symbolAddress: UnsafeRawPointer?
@@ -25,6 +26,7 @@ public enum AntiFishHook {
         }
     }
 
+    @inlinable
     @inline(__always)
     @discardableResult
     static public func denyFishHook(_ symbol: String, at image: MachOImage) -> Bool {
@@ -46,7 +48,8 @@ public enum AntiFishHook {
 }
 
 extension AntiFishHook {
-    private static func find(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
+    @usableFromInline
+    static func find(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
         var libraryOrdinal: Int?
 
         if let symbol = machO.bindingSymbols.first(where: {
@@ -85,7 +88,8 @@ extension AntiFishHook {
         return _findExportedSymbol(symbol, in: targetMachO)
     }
 
-    private static func _findExportedSymbol(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
+    @usableFromInline
+    static func _findExportedSymbol(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
         let exportedSymbols = machO.exportedSymbols
         guard let exportedSymbol = exportedSymbols.first(where: {
             $0.name == "_" + symbol
