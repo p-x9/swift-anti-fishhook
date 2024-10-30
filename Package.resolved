@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/p-x9/swift-fishhook",
       "state" : {
-        "revision" : "302bcbc70fc43d7672e14cb63ef0c0469a3923e1",
-        "version" : "0.4.0"
+        "revision" : "101187186d4aba51902bce007702ba8bdad313f0",
+        "version" : "0.5.0"
       }
     }
   ],
