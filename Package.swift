@@ -4,6 +4,12 @@ import PackageDescription
 
 let package = Package(
     name: "AntiFishHook",
+    platforms: [
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .watchOS(.v6),
+        .tvOS(.v13),
+    ],
     products: [
         .library(
             name: "AntiFishHook",
@@ -11,7 +17,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/p-x9/swift-fishhook", from: "0.4.0"),
+        .package(url: "https://github.com/p-x9/swift-fishhook", from: "0.5.0"),
         .package(url: "https://github.com/p-x9/MachOKit", from: "0.13.0")
     ],
     targets: [
