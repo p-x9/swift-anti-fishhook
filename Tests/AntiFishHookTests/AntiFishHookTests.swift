@@ -9,8 +9,9 @@ final class AntiFishHookTests: XCTestCase {
 
         guard let machO = MachOImage(name: "AntiFishHookTests") else { return }
         guard let to = machO.symbol(
-            named: "$s17AntiFishHookTests10StructItemV11replacementSSyF"
+            named: "_$s17AntiFishHookTests10StructItemV11replacementSSyF"
         ) else {
+            XCTFail("Could not find symbol")
             return
         }
 

@@ -90,10 +90,9 @@ extension AntiFishHook {
 
     @usableFromInline
     static func _findExportedSymbol(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
-        let exportedSymbols = machO.exportedSymbols
-        guard let exportedSymbol = exportedSymbols.first(where: {
-            $0.name == "_" + symbol
-        }) else { return nil }
-        return machO.ptr.advanced(by: exportedSymbol.offset)
+        guard let exportsTrie = machO.exportTrie,
+              let exportedSymbol = exportsTrie.search(for: "_" + symbol) else { return nil }
+        guard let offset = exportedSymbol.offset else { return nil }
+        return machO.ptr.advanced(by: offset)
     }
 }
