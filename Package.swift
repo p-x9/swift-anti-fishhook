@@ -18,7 +18,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/p-x9/swift-fishhook.git", from: "0.5.0"),
-        .package(url: "https://github.com/p-x9/MachOKit.git", from: "0.25.0")
+        .package(url: "https://github.com/p-x9/MachOKit.git", from: "0.28.0")
     ],
     targets: [
         .target(
