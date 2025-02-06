@@ -92,6 +92,16 @@ extension AntiFishHook {
     static func _findExportedSymbol(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
         guard let exportsTrie = machO.exportTrie,
               let exportedSymbol = exportsTrie.search(for: "_" + symbol) else { return nil }
+
+        if exportedSymbol.flags.kind == .absolute,
+            let offset = exportedSymbol.offset {
+            return .init(bitPattern: offset)
+        }
+
+        if let resolver = exportedSymbol.resolver(for: machO) {
+            return .init(bitPattern: resolver())
+        }
+
         guard let offset = exportedSymbol.offset else { return nil }
         return machO.ptr.advanced(by: offset)
     }
