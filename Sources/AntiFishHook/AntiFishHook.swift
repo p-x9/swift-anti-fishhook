@@ -63,9 +63,9 @@ extension AntiFishHook {
         }) { libraryOrdinal = symbol.libraryOrdinal }
 
         else if let dyldChainedFixups = machO.dyldChainedFixups,
-           let `import` = dyldChainedFixups.imports.first(where: {
-               dyldChainedFixups.symbolName(for: $0.info.nameOffset) == "_" + symbol
-           }) {
+                let `import` = dyldChainedFixups.imports.first(where: {
+                    dyldChainedFixups.symbolName(for: $0.info.nameOffset) == "_" + symbol
+                }) {
             libraryOrdinal = `import`.info.libraryOrdinal
         }
 
@@ -75,11 +75,9 @@ extension AntiFishHook {
         if libraryOrdinal == 0 {
             targetMachO = machO
         } else {
-            let libraryName = machO.dependencies[libraryOrdinal - 1].dylib.name
-                .components(separatedBy: "/")
-                .last!
-                .components(separatedBy: ".")
-                .first!
+            let libraryName = machO.dependencies[libraryOrdinal - 1].dylib
+                .name
+                .machOName
             targetMachO = MachOImage(name: libraryName)
         }
 
@@ -91,10 +89,17 @@ extension AntiFishHook {
     @usableFromInline
     static func _findExportedSymbol(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
         guard let exportsTrie = machO.exportTrie,
-              let exportedSymbol = exportsTrie.search(by: "_" + symbol) else { return nil }
+              let exportedSymbol = exportsTrie.search(by: "_" + symbol) else {
+            for reexport in machO.reexportDylibs {
+                if let symbol = _findExportedSymbol(symbol, in: reexport) {
+                    return symbol
+                }
+            }
+            return nil
+        }
 
         if exportedSymbol.flags.kind == .absolute,
-            let offset = exportedSymbol.offset {
+           let offset = exportedSymbol.offset {
             return .init(bitPattern: offset)
         }
 
@@ -104,5 +109,27 @@ extension AntiFishHook {
 
         guard let offset = exportedSymbol.offset else { return nil }
         return machO.ptr.advanced(by: offset)
+    }
+}
+
+extension MachOImage {
+    var reexportDylibs: AnySequence<MachOImage> {
+        let reexports = loadCommands.infos(of: LoadCommand.reexportDylib)
+        return .init(
+            reexports
+                .lazy
+                .map { $0.dylib(cmdsStart: cmdsStartPtr) }
+                .map(\.name.machOName)
+                .compactMap { MachOImage(name: $0) }
+        )
+    }
+}
+
+extension String {
+    fileprivate var machOName: String {
+        components(separatedBy: "/")
+            .last!
+            .components(separatedBy: ".")
+            .first!
     }
 }
