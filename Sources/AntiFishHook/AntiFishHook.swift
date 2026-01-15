@@ -6,23 +6,8 @@ public enum AntiFishHook {
     @inlinable
     @inline(__always)
     static public func denyFishHook(_ symbol: String) {
-        var symbolAddress: UnsafeRawPointer?
         for image in MachOImage.images {
-            if symbolAddress == nil {
-                symbolAddress = find(symbol, in: image)
-            }
-            if let symbolAddress {
-                FishHook.rebind_symbols_image(
-                    machO: image,
-                    rebindings: [
-                        .init(
-                            name: symbol,
-                            replacement: .init(mutating: symbolAddress),
-                            replaced: nil
-                        )
-                    ]
-                )
-            }
+            denyFishHook(symbol, at: image)
         }
     }
 
