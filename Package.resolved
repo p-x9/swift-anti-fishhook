@@ -5,8 +5,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/p-x9/MachOKit.git",
       "state" : {
-        "revision" : "a17885f09c038957a7ec70cb3099f4a423af4c40",
-        "version" : "0.46.1"
+        "revision" : "25e56cbb2865ef4d00ea4f15501f29f65c4ca189",
+        "version" : "0.47.0"
+      }
+    },
+    {
+      "identity" : "objectarchivekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/p-x9/ObjectArchiveKit.git",
+      "state" : {
+        "revision" : "c47d1b2df06168bacb396a1765ae5bf7fa2868fb",
+        "version" : "0.3.0"
       }
     },
     {
