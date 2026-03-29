@@ -208,10 +208,16 @@ extension AntiFishHook {
 extension MachOImage {
     var reexportDylibs: AnySequence<MachOImage> {
         let reexports = loadCommands.infos(of: LoadCommand.reexportDylib)
+            .map { $0.dylib(cmdsStart: cmdsStartPtr) }
+
+        let newreexports = loadCommands.infos(of: LoadCommand.loadDylib)
+            .compactMap { $0.dylibUseCommand(in: self) }
+            .filter { $0.flags.contains(.reexport) }
+            .map { $0.dylib(cmdsStart: cmdsStartPtr) }
+
         return .init(
-            reexports
+            (reexports + newreexports)
                 .lazy
-                .map { $0.dylib(cmdsStart: cmdsStartPtr) }
                 .map(\.name.machOName)
                 .compactMap { MachOImage(name: $0) }
         )
