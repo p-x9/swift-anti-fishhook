@@ -50,26 +50,11 @@ public enum AntiFishHook {
 extension AntiFishHook {
     @usableFromInline
     static func find(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
-        var libraryOrdinal: Int?
-
-        if let symbol = machO.bindingSymbols.first(where: {
-            $0.symbolName == "_" + symbol
-        }) { libraryOrdinal = symbol.libraryOrdinal }
-        else if let symbol = machO.lazyBindingSymbols.first(where: {
-            $0.symbolName == "_" + symbol
-        }) { libraryOrdinal = symbol.libraryOrdinal }
-        else if let symbol = machO.weakBindingSymbols.first(where: {
-            $0.symbolName == "_" + symbol
-        }) { libraryOrdinal = symbol.libraryOrdinal }
-
-        else if let dyldChainedFixups = machO.dyldChainedFixups,
-                let `import` = dyldChainedFixups.imports.first(where: {
-                    dyldChainedFixups.symbolName(for: $0.info.nameOffset) == "_" + symbol
-                }) {
-            libraryOrdinal = `import`.info.libraryOrdinal
+        let symbolName = importedSymbolName(for: symbol)
+        guard let libraryOrdinal = importedLibraryOrdinal(for: symbolName, in: machO) else {
+            return nil
         }
 
-        guard let libraryOrdinal else { return nil }
         var targetMachO: MachOImage?
 
         if libraryOrdinal == 0 {
@@ -84,6 +69,40 @@ extension AntiFishHook {
         guard let targetMachO else { return nil }
 
         return _findExportedSymbol(symbol, in: targetMachO)
+    }
+
+    @usableFromInline
+    static func importedSymbolName(for symbol: String) -> String {
+        "_" + symbol
+    }
+
+    @usableFromInline
+    static func importedLibraryOrdinal(
+        for symbolName: String,
+        in machO: MachOImage
+    ) -> Int? {
+        if let symbol = machO.bindingSymbols.first(where: {
+            $0.symbolName == symbolName
+        }) {
+            return symbol.libraryOrdinal
+        }
+        if let symbol = machO.lazyBindingSymbols.first(where: {
+            $0.symbolName == symbolName
+        }) {
+            return symbol.libraryOrdinal
+        }
+        if let symbol = machO.weakBindingSymbols.first(where: {
+            $0.symbolName == symbolName
+        }) {
+            return symbol.libraryOrdinal
+        }
+        if let dyldChainedFixups = machO.dyldChainedFixups,
+           let `import` = dyldChainedFixups.imports.first(where: {
+               dyldChainedFixups.symbolName(for: $0.info.nameOffset) == symbolName
+           }) {
+            return `import`.info.libraryOrdinal
+        }
+        return nil
     }
 
     @usableFromInline
