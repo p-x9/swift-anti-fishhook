@@ -55,20 +55,12 @@ extension AntiFishHook {
             return nil
         }
 
-        var targetMachO: MachOImage?
-
-        if libraryOrdinal == 0 {
-            targetMachO = machO
-        } else {
-            let libraryName = machO.dependencies[libraryOrdinal - 1].dylib
-                .name
-                .machOName
-            targetMachO = MachOImage(name: libraryName)
+        for targetMachO in targetMachOs(for: libraryOrdinal, in: machO) {
+            if let symbolAddress = _findExportedSymbol(named: symbolName, in: targetMachO) {
+                return symbolAddress
+            }
         }
-
-        guard let targetMachO else { return nil }
-
-        return _findExportedSymbol(symbol, in: targetMachO)
+        return nil
     }
 
     @usableFromInline
@@ -106,15 +98,79 @@ extension AntiFishHook {
     }
 
     @usableFromInline
-    static func _findExportedSymbol(_ symbol: String, in machO: MachOImage) -> UnsafeRawPointer? {
+    static func targetMachOs(
+        for libraryOrdinal: Int,
+        in machO: MachOImage
+    ) -> [MachOImage] {
+        if let bindSpecial = BindSpecial(rawValue: numericCast(libraryOrdinal)) {
+            switch bindSpecial {
+            case .dylib_self:
+                return [machO]
+            case .dylib_main_executable:
+                return [MachOImage.currentExecutable]
+            case .dylib_flat_lookup, .dylib_weak_lookup:
+                return Array(MachOImage.images)
+            }
+        }
+
+        let index = libraryOrdinal - 1
+        guard machO.dependencies.indices.contains(index) else { return [] }
+
+        let libraryName = machO.dependencies[index].dylib.name.machOName
+        guard let targetMachO = MachOImage(name: libraryName) else { return [] }
+        return [targetMachO]
+    }
+
+    @usableFromInline
+    static func _findExportedSymbol(named symbolName: String, in machO: MachOImage) -> UnsafeRawPointer? {
+        var visitedImages: Set<Int> = []
+        return _findExportedSymbol(
+            named: symbolName,
+            in: machO,
+            visitedImages: &visitedImages
+        )
+    }
+
+
+    @usableFromInline
+    static func _findExportedSymbol(
+        named symbolName: String,
+        in machO: MachOImage,
+        visitedImages: inout Set<Int>
+    ) -> UnsafeRawPointer? {
+        let imageAddress = Int(bitPattern: machO.ptr)
+        guard visitedImages.insert(imageAddress).inserted else { return nil }
+
         guard let exportsTrie = machO.exportTrie,
-              let exportedSymbol = exportsTrie.search(by: "_" + symbol) else {
-            for reexport in machO.reexportDylibs {
-                if let symbol = _findExportedSymbol(symbol, in: reexport) {
-                    return symbol
+              let exportedSymbol = exportsTrie.search(by: symbolName) else {
+            return _findExportedSymbolInReexports(
+                named: symbolName,
+                in: machO,
+                visitedImages: &visitedImages
+            )
+        }
+
+        if exportedSymbol.flags.contains(.reexport) {
+            let reexportedSymbolName = exportedSymbol.importedName
+                .flatMap { $0.isEmpty ? nil : $0 } ?? symbolName
+
+            if let ordinal = exportedSymbol.ordinal {
+                for targetMachO in targetMachOs(for: Int(ordinal), in: machO) {
+                    if let symbolAddress = _findExportedSymbol(
+                        named: reexportedSymbolName,
+                        in: targetMachO,
+                        visitedImages: &visitedImages
+                    ) {
+                        return symbolAddress
+                    }
                 }
             }
-            return nil
+
+            return _findExportedSymbolInReexports(
+                named: reexportedSymbolName,
+                in: machO,
+                visitedImages: &visitedImages
+            )
         }
 
         if exportedSymbol.flags.kind == .absolute,
@@ -128,6 +184,24 @@ extension AntiFishHook {
 
         guard let offset = exportedSymbol.offset else { return nil }
         return machO.ptr.advanced(by: offset)
+    }
+
+    @usableFromInline
+    static func _findExportedSymbolInReexports(
+        named symbolName: String,
+        in machO: MachOImage,
+        visitedImages: inout Set<Int>
+    ) -> UnsafeRawPointer? {
+        for reexport in machO.reexportDylibs {
+            if let symbolAddress = _findExportedSymbol(
+                named: symbolName,
+                in: reexport,
+                visitedImages: &visitedImages
+            ) {
+                return symbolAddress
+            }
+        }
+        return nil
     }
 }
 
