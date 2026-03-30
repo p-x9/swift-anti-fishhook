@@ -69,7 +69,10 @@ extension AntiFishHookTests {
             rebindings: rebindings
         )
 
-        let handle = UnsafeMutableRawPointer(mutating: machO.ptr) // dlopen("path", RTLD_NOW)
+        var info = Dl_info()
+        dladdr(machO.ptr, &info)
+
+        let handle = dlopen(String(cString: info.dli_fname), RTLD_NOW)
         print(dlsym(handle, "$s17AntiFishHookTests10StructItemV11replacementSSyF").debugDescription)
 
         AntiFishHook.denyFishHook(targetSymbolName, at: machO)
